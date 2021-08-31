@@ -1,0 +1,6 @@
+{
+    "type":"Edge",
+    "sub-type":"RALink",
+    "ports":2,
+    "length":2
+}

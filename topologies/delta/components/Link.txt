@@ -1,0 +1,5 @@
+{
+    "type":"Edge",
+    "sub-type":"Link",
+    "ports":1
+}

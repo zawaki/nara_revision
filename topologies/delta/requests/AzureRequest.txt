@@ -1,0 +1,10 @@
+{
+    "type":"Request",
+    "sub-type":"AzureRequest",
+    "node":20,
+    "ports":1,
+    "mem":20,
+    "holding_time":1536,
+    "allocated":false,
+    "allocation_time":0
+}

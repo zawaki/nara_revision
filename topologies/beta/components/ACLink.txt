@@ -1,0 +1,6 @@
+{
+    "type":"Edge",
+    "sub-type":"ACLink",
+    "ports":1,
+    "length":3
+}
