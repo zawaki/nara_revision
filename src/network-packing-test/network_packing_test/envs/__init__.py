@@ -1,1 +1,0 @@
-from network_packing_test.envs.packing_env import PackingEnv

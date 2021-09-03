@@ -1,0 +1,61 @@
+{
+  "batch_mode": "complete_episodes",
+  "eager_tracing": true,
+  "env": "pa_network",
+  "env_config": {
+    "features": {
+      "link": [
+        "ports"
+      ],
+      "node": [
+        "node",
+        "mem"
+      ]
+    },
+    "lb_route_weighting": false,
+    "network_dir": "/home/uceezs0/Code/nara_revision/topologies/alpha",
+    "new_save": false,
+    "num_init_requests": 16,
+    "request_type": "SingleResourceRequest",
+    "restore": false,
+    "rnd_seed": 0,
+    "sanity_check": false,
+    "seed_on_reset": false
+  },
+  "framework": "tfe",
+  "horizon": null,
+  "log_level": "ERROR",
+  "lr": 0.005,
+  "model": {
+    "custom_model": "pa_model",
+    "custom_model_config": {
+      "agg_dim": 16,
+      "agg_type": "MeanPool2",
+      "embedding_save_dir": null,
+      "features": {
+        "link": [
+          "ports"
+        ],
+        "node": [
+          "node",
+          "mem"
+        ]
+      },
+      "graph_dir": "/home/uceezs0/Code/nara_revision/topologies/alpha",
+      "num_features": 2,
+      "num_mp_stages": 3,
+      "obs_emb_dim": 8,
+      "top_k": null,
+      "use_gnn": true
+    },
+    "fcnet_hiddens": [
+      8
+    ]
+  },
+  "num_gpus": 3,
+  "num_workers": 1,
+  "rollout_fragment_length": 2048,
+  "sgd_minibatch_size": 256,
+  "train_batch_size": 2048,
+  "vf_share_layers": false
+}

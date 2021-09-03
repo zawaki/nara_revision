@@ -19,7 +19,8 @@ import random
 import packing_test
 
 # from dcn_env.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel
-from network_packing_test.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel, NonParametricActionsModel
+# from network_packing_test.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel, NonParametricActionsModel
+from dcn_env.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel
 
 import os
 os.environ['USE_OFFICIAL_TFDLPACK'] = "true"
@@ -32,45 +33,6 @@ from gcn import *
 
 tf1, tf, tfv = try_import_tf()
 tf.get_logger().setLevel('INFO')
-
-def PPO(config, reporter):
-    '''
-    Training function used in tune.run to restore an agent state before training.
-
-    If restored, the agent will continue to output checkpoints in the old agents
-    save directory. However, it's tensorboard file is saved in it's own directory
-    (for some reason...). This should be fixed at some point, but is non-essential.
-    '''
-    if config['env_config']['restore'] == True:
-
-        agent = ppo.PPOTrainer(config)
-        save_dir = '{}/{}'.format(config['env_config']['save_path'],config['env_config']['restore_id'])
-
-        chkpt = config['env_config']['checkpoint']
-        agent.restore('{}/checkpoint_{}/checkpoint-{}'.format(save_dir,chkpt,chkpt))
-
-        config['env_config']['restore'] = False
-
-    else:
-
-        agent = ppo.PPOTrainer(config)
-        save_dir = config['env_config']['save_path']
-
-    i = 0
-    while True:
-        result = agent.train()
-        print('RESULT: {}'.format(result['experiment_id']))
-        if reporter is None:
-            continue
-        else:
-            reporter(**result)
-        if i % config['env_config']['checkpoint_freq'] == 0:
-            if config['env_config']['new_save'] is True:
-                checkpoint_path = agent.save('{}/{}'.format(config['env_config']['save_dir'],result['experiment_id']))
-            else:
-                checkpoint_path = agent.save('{}'.format(config['env_config']['save_dir']))
-            print(checkpoint_path)
-        i+=1
 
 if __name__ == "__main__":
 
@@ -160,17 +122,12 @@ if __name__ == "__main__":
             "batch_mode": "complete_episodes",
         },
         **cfg)
-    print(config)
-    if config['env_config']['restore'] == True:
-        run_type = PPO
-    else:
-        run_type = args.run
 
     stop = {
         "training_iteration": args.training_iterations,
     }
     print('args: {}'.format(args))
-    results = tune.run(run_type, local_dir=args.save_dir, checkpoint_freq=args.checkpoint_frequency, stop=stop, config=config, verbose=2)
+    results = tune.run(args.run, local_dir=args.save_dir, checkpoint_freq=args.checkpoint_frequency, stop=stop, config=config, verbose=2)
 
     if args.as_test:
         check_learning_achieved(results, args.stop_reward)
