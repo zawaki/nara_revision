@@ -323,7 +323,8 @@ class PackingAgent:
 
         edge_features = tf.reshape(tf.gather(edges,valid_edges),[valid_edges.shape[0], 1])
         edge_features_zeros = tf.zeros((nodes.shape[0]-edge_features.shape[0],1))
-        edge_features = tf.concat([edge_features_zeros, edge_features],0)
+        # print(edge_features_zeros,edge_features)
+        edge_features = tf.concat([tf.cast(edge_features_zeros,tf.float32), tf.cast(edge_features,tf.float32)],0)
         
         features = tf.concat([nodes, edge_features],-1)
 

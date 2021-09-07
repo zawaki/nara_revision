@@ -61,13 +61,13 @@ class PackingEnv(gym.Env):
         self.lb_route_weighting = env_config['lb_route_weighting']
 
         self.seed_on_reset = env_config['seed_on_reset']
-
         self.reset()
-
         self.action_space = spaces.Discrete(self.num_actions)
         self.observation_space = spaces.Box(low=-10000,high=10000,shape=(len(self.features['node'])+1,))
         
         self.path_links = set()
+
+        print('initialised')
 
     def reset(self):
         self.time = 0
@@ -100,41 +100,12 @@ class PackingEnv(gym.Env):
         self._update_current_request()
         
         return self._get_observation()
-    
-    # def connectivity_check(self, component_id):
 
-    #     #get list of nodes currently allocated to current_request, and name of selected action node
-    #     currently_allocated = list(self.manager.allocated_requests[self.current_request].allocations.keys())
-    #     req_network = self.manager.allocated_requests[self.current_request].requirements['ports']
+    def connectivity_check(self,component_id, k=3):
 
-    #     fail = False
-    #     for comp in currently_allocated:
-
-    #         path = nx.algorithms.shortest_paths.weighted.dijkstra_path(self.manager.network.graph,component_id,comp)
-    #         print('trying path: {}'.format(path))
-    #         for i in range(1,len(path)):
-    #             link = self.manager.network.graph.get_edge_data(path[i-1],path[i])['label']
-
-    #             self.path_links.add(link)
-    #             ports = self.manager.network.components[link].available['ports']
-
-    #             if ports < req_network:
-    #                 fail = True
-    #                 break
-    #         if fail:
-    #             break
-    #     print('failed: {}'.format(fail))
-    #     return fail
-
-    def connectivity_check(self, component_id, k=3):
-        # print('\n')
-        #get list of nodes currently allocated to current_request, and name of selected action node
-        currently_allocated = list(self.manager.allocated_requests[self.current_request].allocations.keys())
-        req_network = self.manager.allocated_requests[self.current_request].requirements['ports']
-
-        tmp_links = set()
+        components = list(self.manager.allocated_requests[self.current_request].allocations.keys())
+        all_links = {}
         failed = False
-
         #lb methods
         if not self.lb_route_weighting:
             graph = self.manager.network.graph
@@ -143,45 +114,118 @@ class PackingEnv(gym.Env):
             graph = self.manager.network.netx_lb_routing_weights()
             weight = 'weight'
 
-        for comp in currently_allocated:
+        for comp in components:
+            # print(nx.shortest_simple_paths(graph,component_id,comp,weight=weight),k)
             paths = list(islice(nx.shortest_simple_paths(graph,component_id,comp,weight=weight), k))
 
             for path in paths:
-                # print('trying path: {}'.format(path))
                 failed = False
-                links = []
-                for i in range(1,len(path)):
+                path_links = {}
 
+                for i in range(1,len(path)):
                     link = self.manager.network.graph.get_edge_data(path[i-1],path[i])['label']
-                    links.append(link)
                     ports = self.manager.network.components[link].available['ports']
 
-                    if ports < req_network:
-                        # print('insufficient: {},{}'.format(path[i-1],path[i]))
+                    if ports < 1:
                         failed = True
+                    else:
+                        if link in path_links.keys():
+                            path_links[link] += 1
+                        else:
+                            path_links[link] = 1
 
                 if not failed:
-                    # print('path succeeded')
-                    tmp_links.update(links)
-                    break
-                # else:
-                #     print('path failed')
+                    
+                    for lnk in path_links.keys():
+                        if lnk in all_links.keys():
+                            all_links[lnk] += 1
+                        else:
+                            all_links[lnk] = 1     
+                    
+                    self._allocate_network(path_links)
 
+                    break   
+
+            
             if failed:
+                print('no paths')
                 return failed
-        
-        self.path_links.update(tmp_links)
+            
+        self.links_to_allocate = all_links
 
         return failed
 
     def allocate_network(self):
 
-        for link in self.path_links:
-            
-            amount = self.manager.allocated_requests[self.current_request].requirements['ports']
+        for link,ports_to_allocate in self.links_to_allocate.items():
 
-            self.manager.allocate(self.current_request,link,'ports',amount)
-            self.path_links = set()
+            self.manager.allocate(self.current_request,link,'ports',ports_to_allocate)
+            self.links_to_allocate = {}
+
+    def _allocate_network(self,link_dict):
+
+        for link,ports_to_allocate in link_dict.items():
+
+            self.manager.allocate(self.current_request,link,'ports',ports_to_allocate)
+            self.links_to_allocate = {}
+                
+
+    # def connectivity_check(self, component_id, k=3):
+    #     # print('\n')
+    #     #get list of nodes currently allocated to current_request, and name of selected action node
+    #     currently_allocated = list(self.manager.allocated_requests[self.current_request].allocations.keys())
+    #     req_network = self.manager.allocated_requests[self.current_request].requirements['ports']
+
+    #     tmp_links = set()
+    #     failed = False
+
+    #     #lb methods
+    #     if not self.lb_route_weighting:
+    #         graph = self.manager.network.graph
+    #         weight = None
+    #     else:
+    #         graph = self.manager.network.netx_lb_routing_weights()
+    #         weight = 'weight'
+
+    #     for comp in currently_allocated:
+    #         paths = list(islice(nx.shortest_simple_paths(graph,component_id,comp,weight=weight), k))
+
+    #         for path in paths:
+    #             # print('trying path: {}'.format(path))
+    #             failed = False
+    #             links = []
+    #             for i in range(1,len(path)):
+
+    #                 link = self.manager.network.graph.get_edge_data(path[i-1],path[i])['label']
+    #                 links.append(link)
+    #                 ports = self.manager.network.components[link].available['ports']
+
+    #                 if ports < req_network:
+    #                     # print('insufficient: {},{}'.format(path[i-1],path[i]))
+    #                     failed = True
+
+    #             if not failed:
+    #                 # print('path succeeded')
+    #                 tmp_links.update(links)
+    #                 break
+    #             # else:
+    #             #     print('path failed')
+
+    #         if failed:
+    #             return failed
+        
+    #     self.path_links.update(tmp_links)
+
+    #     return failed
+
+    # def allocate_network(self):
+
+    #     for link in self.path_links:
+            
+    #         amount = self.manager.allocated_requests[self.current_request].requirements['ports']
+
+    #         self.manager.allocate(self.current_request,link,'ports',amount)
+    #         self.path_links = set()
 
     def _update_request_size_checking(self):
         # print('UPDATING REQUEST IN ENV')
@@ -258,7 +302,8 @@ class PackingEnv(gym.Env):
             if self.sanity_check:
                 print('failed')
                 print('\n')
-
+                
+            self.manager.de_allocate(self.current_request)
             self.failed += 1
             self.manager.allocated_requests[self.current_request].requirements['allocated'] = False
 
@@ -281,7 +326,7 @@ class PackingEnv(gym.Env):
             
             else:
                 self.manager.de_allocate(self.current_request)
-                self.path_links = set()
+                # self.path_links = set()
         
                 done = self._done()
                 if not done:
@@ -333,7 +378,6 @@ class PackingEnv(gym.Env):
             print('equal: {}'.format((requested_node == allocated_node)))
             print('\n')
         self.successful_allocation = (requested_node == allocated_node)
-
         if self.successful_allocation:
             # print('succeeded')
             if self.sanity_check:

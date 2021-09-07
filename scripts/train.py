@@ -18,8 +18,6 @@ import random
 
 import packing_test
 
-# from dcn_env.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel
-# from network_packing_test.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel, NonParametricActionsModel
 from dcn_env.envs.packing_env import PackingEnv, ParametricActionWrapper, ParametricActionsModel
 
 import os
@@ -45,8 +43,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--topology', nargs='?', type=str, default='alpha')
     parser.add_argument('--dataset', nargs='?', type=str, default='uniform')
-    parser.add_argument('--episode_length', nargs='?', default='16',type=int)
-    parser.add_argument('--save_dir', nargs='?', type=str, default='./data')
+    parser.add_argument('--episode_length', nargs='?', default='32',type=int)
+    parser.add_argument('--save_dir', nargs='?', type=str, default='/home/uceezs0/Code/nara_data/sanity_check_0')
 
     parser.add_argument("--number_of_trains", type=int, default=1)
     args = parser.parse_args()
