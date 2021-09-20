@@ -103,7 +103,9 @@ class PackingEnv(gym.Env):
 
     def connectivity_check(self,component_id, k=3):
 
-        components = list(self.manager.allocated_requests[self.current_request].allocations.keys())
+        # components = list(self.manager.allocated_requests[self.current_request].allocations.keys())
+        components = [comp for comp in list(self.manager.allocated_requests[self.current_request].allocations.keys()) if self.manager.network.components[comp].sub_type == 'Resource']
+        # print(components)
         all_links = {}
         failed = False
         #lb methods
@@ -148,7 +150,7 @@ class PackingEnv(gym.Env):
 
             
             if failed:
-                print('no paths')
+                # print('no paths')
                 return failed
             
         self.links_to_allocate = all_links

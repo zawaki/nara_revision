@@ -160,9 +160,9 @@ class SingleResourceRequest(Request):
         self.node_capacity_quantity()
 
     def node_capacity_quantity(self):
-        self.requirements['node'] = np.float32(rnd.randint(1,50))
-        self.requirements['mem'] = np.float32(rnd.randint(1,50))
-        self.requirements['ports'] = np.float32(rnd.uniform(0.1,self.requirements['ports']))
+        self.requirements['node'] = np.float32(rnd.randint(1,128))
+        self.requirements['mem'] = np.float32(rnd.randint(1,128))
+        self.requirements['ports'] = 1.0#np.float32(rnd.uniform(0.1,self.requirements['ports']))
         ht_norm = self.requirements['holding_time']
         self.requirements['holding_time'] = np.float32(rnd.randint(1,self.requirements['holding_time']))
         self.requirements['holding_time_feat'] = np.float32(self.requirements['holding_time']/ht_norm)

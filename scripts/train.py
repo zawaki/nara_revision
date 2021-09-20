@@ -44,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument('--topology', nargs='?', type=str, default='alpha')
     parser.add_argument('--dataset', nargs='?', type=str, default='uniform')
     parser.add_argument('--episode_length', nargs='?', default='32',type=int)
-    parser.add_argument('--save_dir', nargs='?', type=str, default='/home/uceezs0/Code/nara_data/sanity_check_0')
+    parser.add_argument('--save_dir', nargs='?', type=str, default='/home/uceezs0/Code/nara_data/revision_0/training_results')
 
     parser.add_argument("--number_of_trains", type=int, default=1)
     args = parser.parse_args()
@@ -56,78 +56,111 @@ if __name__ == "__main__":
     elif args.dataset == 'alibaba':
         request_type = 'AlibabaRequest'
 
-    args = parser.parse_args()
-    ray.shutdown()
-    ray.init(temp_dir='/tmp/uceezs0_ray_tmp')
+    link_names = ['SRLink.txt','RALink.txt','ACLink.txt']
+    num_channels_0 = [8.0,16.0,32.0]
+    num_channels_1 = [8.0,16.0,32.0]
+    num_channels_2 = [8.0,16.0,32.0]
 
-    register_env("pa_network", lambda config: ParametricActionWrapper(config))
-    ModelCatalog.register_custom_model("pa_model", ParametricActionsModel)
+    for sr_channel in num_channels_0:
+        for ra_channel in num_channels_1:
+            for ac_channel in num_channels_2:
 
-    if args.run == "DQN":
-        cfg = {
-            "hiddens": [],
-            "dueling": False,
-        }
-    else:
-        cfg = {}
+                with open('../topologies/{}/components/SRLink.txt'.format(args.topology),'r+') as f:
+                    tmp_config = json.load(f)
+                    tmp_config['ports'] = sr_channel
+                    f.close()
+                with open('../topologies/alpha/components/SRLink.txt','w') as f:
+                    f.write(json.dumps(tmp_config))
+                    f.close()
 
-    FEATURES = {'node':['node','mem'],
-                'link':['ports']}
-    NUM_FEATURES = 2
+                with open('../topologies/{}/components/RALink.txt'.format(args.topology),'r+') as f:
+                    tmp_config = json.load(f)
+                    tmp_config['ports'] = ra_channel
+                    f.close()
+                with open('../topologies/alpha/components/RALink.txt','w') as f:
+                    f.write(json.dumps(tmp_config))
+                    f.close()
 
-    config = dict({
-            "env": "pa_network",
-            "env_config": {
-                'restore':False,
-                'new_save':False,
-                'sanity_check':False,
-                'num_init_requests':args.episode_length,
-                'network_dir':os.path.abspath('../topologies/{}'.format(args.topology)),
-                'features':FEATURES,
-                'request_type':request_type,
-                'rnd_seed':0,
-                'seed_on_reset':False,
-                'lb_route_weighting':False,
-            },
-            "model": {
-                "custom_model": "pa_model",
-                "custom_model_config": {
-                    'features':FEATURES,
-                    'graph_dir':os.path.abspath('../topologies/{}'.format(args.topology)),
-                    'use_gnn':True,
-                    'agg_type':'MeanPool2',
-                    'agg_dim':16,
-                    'num_mp_stages':3,
-                    'obs_emb_dim':8,
-                    'num_features':NUM_FEATURES,
-                    'embedding_save_dir':None,
-                    'top_k':None,
-                },
-                "fcnet_hiddens": [8],
-            },
-            # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
-            "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "3")),
-            "num_workers": 1,
-            "framework":"tfe",
-            "eager_tracing":True,
-            "vf_share_layers": False,
-            "lr": tune.grid_search([5e-3]*args.number_of_trains),
-            "horizon":None,
-            "rollout_fragment_length": 2048,      
-            "train_batch_size":tune.grid_search([2048]),
-            "sgd_minibatch_size":tune.grid_search([256]),
-            "log_level":"ERROR",
-            "batch_mode": "complete_episodes",
-        },
-        **cfg)
+                with open('../topologies/{}/components/ACLink.txt'.format(args.topology),'r+') as f:
+                    tmp_config = json.load(f)
+                    tmp_config['ports'] = ac_channel
+                    f.close()
+                with open('../topologies/alpha/components/ACLink.txt','w') as f:
+                    f.write(json.dumps(tmp_config))
+                    f.close()
 
-    stop = {
-        "training_iteration": args.training_iterations,
-    }
-    print('args: {}'.format(args))
-    results = tune.run(args.run, local_dir=args.save_dir, checkpoint_freq=args.checkpoint_frequency, stop=stop, config=config, verbose=2)
+                args = parser.parse_args()
+                ray.shutdown()
+                ray.init(temp_dir='/tmp/uceezs0_ray_tmp')
 
-    if args.as_test:
-        check_learning_achieved(results, args.stop_reward)
+                register_env("pa_network", lambda config: ParametricActionWrapper(config))
+                ModelCatalog.register_custom_model("pa_model", ParametricActionsModel)
 
-    ray.shutdown()
+                if args.run == "DQN":
+                    cfg = {
+                        "hiddens": [],
+                        "dueling": False,
+                    }
+                else:
+                    cfg = {}
+
+                FEATURES = {'node':['node','mem'],
+                            'link':['ports']}
+                NUM_FEATURES = 2
+
+                config = dict({
+                        "env": "pa_network",
+                        "env_config": {
+                            'restore':False,
+                            'new_save':False,
+                            'sanity_check':False,
+                            'num_init_requests':args.episode_length,
+                            'network_dir':os.path.abspath('../topologies/{}'.format(args.topology)),
+                            'features':FEATURES,
+                            'request_type':request_type,
+                            'rnd_seed':0,
+                            'seed_on_reset':False,
+                            'lb_route_weighting':False,
+                        },
+                        "model": {
+                            "custom_model": "pa_model",
+                            "custom_model_config": {
+                                'features':FEATURES,
+                                'graph_dir':os.path.abspath('../topologies/{}'.format(args.topology)),
+                                'use_gnn':True,
+                                'agg_type':'MeanPool2',
+                                'agg_dim':16,
+                                'num_mp_stages':3,
+                                'obs_emb_dim':8,
+                                'num_features':NUM_FEATURES,
+                                'embedding_save_dir':None,
+                                'top_k':None,
+                            },
+                            "fcnet_hiddens": [8],
+                        },
+                        # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
+                        "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "3")),
+                        "num_workers": 1,
+                        "framework":"tfe",
+                        "eager_tracing":True,
+                        "vf_share_layers": False,
+                        "lr": tune.grid_search([5e-3]*args.number_of_trains),
+                        "horizon":None,
+                        "rollout_fragment_length": 2048,      
+                        "train_batch_size":tune.grid_search([2048]),
+                        "sgd_minibatch_size":tune.grid_search([256]),
+                        "log_level":"ERROR",
+                        "batch_mode": "complete_episodes",
+                    },
+                    **cfg)
+
+                stop = {
+                    "training_iteration": args.training_iterations,
+                }
+                print('args: {}'.format(args))
+                results = tune.run(args.run, local_dir='{}/agent_{}_{}_{}'.format(args.save_dir,sr_channel,ra_channel,ac_channel), checkpoint_freq=args.checkpoint_frequency, stop=stop, config=config, verbose=2)
+
+                if args.as_test:
+                    check_learning_achieved(results, args.stop_reward)
+
+                ray.shutdown()
