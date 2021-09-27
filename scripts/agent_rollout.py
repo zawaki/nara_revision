@@ -49,8 +49,20 @@ if __name__ == '__main__':
     ray.shutdown()
     ray.init(temp_dir='/tmp/uceezs0_ray_tmp_0',ignore_reinit_error=True)
 
-    check_dir_0 = '/home/uceezs0/Code/nara_data/old/sanity_check_0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-07_11-04-31op68gvuu'
-    check_dir_1 = 'checkpoint_44/checkpoint-44'
+    checkpoint_path = [
+        '8.0_64.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_14-13-29ij6kbta8',
+        '8.0_32.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-26_10-20-1164x4sxuq',
+        '8.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_21-52-386eviwvm0',
+        '16.0_128.0_128.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_01-42-49ikkndlsx',
+        '16.0_64.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_05-19-33_344rm6i',
+        '16.0_64.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_11-19-22uwx0v9fd',
+        '32.0_256.0_256.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_12-53-26qcefb8dx',
+        '32.0_128.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_17-01-35fqd0mv7g',
+        '32.0_128.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_10-10-56p23xt118'
+    ]
+
+    check_dir_0 = '/home/uceezs0/Code/nara_data/uniform/agent_train/{}'.format(checkpoint_path[0])
+    check_dir_1 = 'checkpoint_100/checkpoint-100'
     with open('{}/params.json'.format(check_dir_0),'r') as f:
         config = json.load(f)
 
@@ -76,18 +88,6 @@ if __name__ == '__main__':
         nalb = PackingAgent('nalb')
         random = PackingAgent('random')
 
-    ###COMBO GENERATION SECTION###
-    # link_names = ['SRLink.txt','RALink.txt','ACLink.txt']
-    # num_channels_0 = [8.0,32.0]
-    # num_channels_1 = [8.0,32.0]
-    # num_channels_2 = [8.0,32.0]
-
-    # all_combos = []
-
-    # for sr_channel in num_channels_0:
-    #     for ra_channel in num_channels_1:
-    #         for ac_channel in num_channels_2:
-    #             all_combos.append((sr_channel,ra_channel,ac_channel))
     low_tier_channels = [8.0,16.0,32.0]
     oversubscription_ratio_multipliers = [(2,0.5)]#(8,8),(4,2),(4,1),]
 
@@ -98,19 +98,25 @@ if __name__ == '__main__':
             all_combos.append([t_ch,ov_r[0]*t_ch,ov_r[1]*t_ch])
     ##############################
 
+    for i in [5]:#len(all_combos)):
 
-    for combo in all_combos:
+        combo = all_combos[i]
         print(combo)
         sr_channel = combo[0]
         ra_channel = combo[1]
         ac_channel = combo[2]
 
-        print(sr_channel,ra_channel,ac_channel)
+        agent = ppo.PPOTrainer(config=config)
+        agent.restore('/home/uceezs0/Code/nara_data/uniform/agent_train/{}/checkpoint_100/checkpoint-100'.format(checkpoint_path[i]))
+
+        print(checkpoint_path[i])
+        print(combo)
 
         with open('../topologies/{}/components/SRLink.txt'.format(args.topology),'r+') as f:
             tmp_config = json.load(f)
             tmp_config['ports'] = sr_channel
             f.close()
+
         with open('../topologies/{}/components/SRLink.txt'.format(args.topology),'w') as f:
             f.write(json.dumps(tmp_config))
             f.close()
@@ -119,7 +125,6 @@ if __name__ == '__main__':
             tmp_config = json.load(f)
             tmp_config['ports'] = ra_channel
             f.close()
-
         with open('../topologies/{}/components/RALink.txt'.format(args.topology),'w') as f:
             f.write(json.dumps(tmp_config))
             f.close()
@@ -128,24 +133,11 @@ if __name__ == '__main__':
             tmp_config = json.load(f)
             tmp_config['ports'] = ac_channel
             f.close()
+
         with open('../topologies/{}/components/ACLink.txt'.format(args.topology),'w') as f:
             f.write(json.dumps(tmp_config))
             f.close()
 
-        if args.test_baselines == 'yes':
-            
-            config['env_config']['lb_route_weighting'] = False
-            env = ParametricActionWrapper(env_config=config['env_config'])
-            rollout(tetris,env,'{}/tetris/{}_{}_{}'.format(args.save_dir,sr_channel,ra_channel,ac_channel),rl=False,iterations=args.iterations)
-
-            config['env_config']['lb_route_weighting'] = False
-            env = ParametricActionWrapper(env_config=config['env_config'])
-            rollout(random,env,'{}/random/{}_{}_{}'.format(args.save_dir,sr_channel,ra_channel,ac_channel),rl=False,iterations=args.iterations)
-
-            config['env_config']['lb_route_weighting'] = True
-            env = ParametricActionWrapper(env_config=config['env_config'])
-            rollout(nalb,env,'{}/nalb/{}_{}_{}'.format(args.save_dir,sr_channel,ra_channel,ac_channel),rl=False,iterations=args.iterations)
-
-            config['env_config']['lb_route_weighting'] = True
-            env = ParametricActionWrapper(env_config=config['env_config'])
-            rollout(nulb,env,'{}/nulb/{}_{}_{}'.format(args.save_dir,sr_channel,ra_channel,ac_channel),rl=False,iterations=args.iterations)
+        config['env_config']['lb_route_weighting'] = False
+        env = ParametricActionWrapper(env_config=config['env_config'])
+        rollout(agent,env,'{}/agent/{}_{}_{}'.format(args.save_dir,sr_channel,ra_channel,ac_channel),rl=True,iterations=args.iterations)
