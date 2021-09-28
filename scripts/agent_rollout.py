@@ -27,13 +27,13 @@ import argparse
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--topology', nargs='?', default='alpha_test')
+    parser.add_argument('--topology', nargs='?', default='delta')
     parser.add_argument('--test_baselines', nargs='?', default='yes')
     parser.add_argument('--agent', nargs='?', default='uniform')
     parser.add_argument('--dataset', nargs='?', default='uniform')
-    parser.add_argument('--episode_length', nargs='?', default='128',type=int)
+    parser.add_argument('--episode_length', nargs='?', default='4096',type=int)
     parser.add_argument('--iterations', nargs='?', default='5',type=int)
-    parser.add_argument('--save_dir', nargs='?', default='../../nara_data/uniform/baselines/')
+    parser.add_argument('--save_dir', nargs='?', default='../../nara_data/large_graph/baselines/')
     args = parser.parse_args()
 
     #kwargs
@@ -53,13 +53,22 @@ if __name__ == '__main__':
         '8.0_64.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_14-13-29ij6kbta8',
         '8.0_32.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-26_10-20-1164x4sxuq',
         '8.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_21-52-386eviwvm0',
+        '8.0_16.0_4.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_16-01-07bprkcmlo',
         '16.0_128.0_128.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_01-42-49ikkndlsx',
         '16.0_64.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_05-19-33_344rm6i',
         '16.0_64.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_11-19-22uwx0v9fd',
+        '16.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_20-15-5076a8l_qu',
         '32.0_256.0_256.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_12-53-26qcefb8dx',
         '32.0_128.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_17-01-35fqd0mv7g',
-        '32.0_128.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_10-10-56p23xt118'
+        '32.0_128.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_10-10-56p23xt118',
+        '32.0_64.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-28_00-17-300m1s52_f'
     ]
+
+    # checkpoint_path = [
+    #     '8.0_16.0_4.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_16-01-07bprkcmlo',
+    #     '16.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_20-15-5076a8l_qu',
+    #     '32.0_64.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-28_00-17-300m1s52_f'
+    # ]
 
     check_dir_0 = '/home/uceezs0/Code/nara_data/uniform/agent_train/{}'.format(checkpoint_path[0])
     check_dir_1 = 'checkpoint_100/checkpoint-100'
@@ -89,7 +98,7 @@ if __name__ == '__main__':
         random = PackingAgent('random')
 
     low_tier_channels = [8.0,16.0,32.0]
-    oversubscription_ratio_multipliers = [(2,0.5)]#(8,8),(4,2),(4,1),]
+    oversubscription_ratio_multipliers = [(8,8),(4,2),(4,1),(2,0.5)]
 
     all_combos = []
 
@@ -98,7 +107,7 @@ if __name__ == '__main__':
             all_combos.append([t_ch,ov_r[0]*t_ch,ov_r[1]*t_ch])
     ##############################
 
-    for i in [5]:#len(all_combos)):
+    for i in range(len(all_combos)):
 
         combo = all_combos[i]
         print(combo)
