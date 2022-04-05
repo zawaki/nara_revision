@@ -4,6 +4,10 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
+import matplotlib.gridspec as gridspec
+
+
 AVERAGE_SAMPLES = 25
 
 def _acceptance_average(path,n=1):
@@ -292,6 +296,8 @@ def get_comparison_table(packer_stats,topologies,oversub):
         table[oversub[i]][channel] = '{},{},{}'.format(round(improvement_accpt,1),round(improvement_cpu,1),round(improvement_mem,1))
         
     df = pd.DataFrame(table)
+    df = df.reindex(index = ['8.0','16.0','32.0'])
+
     table_tex = df.to_latex(index=True).split('\n')
 
     tex_final = []
@@ -303,7 +309,7 @@ def get_comparison_table(packer_stats,topologies,oversub):
             line = line.replace('lllll','llllllllllllll')
             tex_final.append(line)
             if i == 0:
-                tex_final.append('\multicolumn{14}{c}{Improvement - Accpt, CPU, Mem} \\\\')
+#                 tex_final.append('\multicolumn{14}{c}{Agent improvement over second best baseline} \\\\')
                 tex_final.append('\\midrule')
                 tex_final.append('\multicolumn{14}{c}{\\textbf{Oversubscription}} \\\\')
         elif i == 2:
@@ -323,7 +329,7 @@ def get_comparison_table(packer_stats,topologies,oversub):
                 else:
                     split_line[i] = ' & \multicolumn{{3}}{{c}}{{{}}}'.format(values)
             line = ''.join(split_line)
-            line = ' \\textbf{Low-tier} & ' + line
+            line = ' \\textbf{Tier-1} & ' + line
             tex_final.append(line)
         elif i == 5:
             split_line = line.split(' & ')
@@ -390,21 +396,50 @@ def get_metric_line_plots(topologies,packer_stats,oversub,oversub_selector=None,
         elif channels_selector is not None and value[0] != channels_selector:
             continue
         else:
-            name = '{}\n({})'.format(value[0],oversub[i])
+            if oversub[i] == 0.0625:
+                ovs = '1:16'
+            elif oversub[i] == 0.125:
+                ovs = '1:8'
+            elif oversub[i] == 0.25:
+                ovs = '1:4'
+            else:
+                ovs = '1:1'
+            name = '{}\n{}'.format(int(value[0]),ovs)
             reshaped_topology_names.append(name)
             indices.append(i)
 
 #     for metric in ['accpt','cpu','mem','sr','ra','ac','nodes']:
     for metric in ['accpt','cpu','mem','sr','ra','ac','ratio']:
-        plt.figure(figsize=(10,2))
-        plt.xlabel('topology')
-        plt.ylabel(metric)
-#         if metric in ['sr','ra','ac','nodes']:
-        if metric in ['sr','ra','ac','ratio']:
-            plt.ylim(0,3.0)
-        else:
+        plt.figure(figsize=(5,3))
+#         plt.xlabel('low-tier channels-per-link\n(oversubscription)')
+        if metric == 'accpt':
             plt.ylim(0,1.1)
-        plt.title('topology vs {}'.format(metric))
+            plt.ylabel('accpt.',fontsize=15)
+            plt.xlabel('f\nf',fontsize=18,color='w')
+        elif metric == 'cpu':
+            plt.ylim(0,1.1)
+            plt.ylabel('cpu util.',fontsize=15)
+            plt.xlabel('low-tier channels-per-link\n(oversubscription)',fontsize=18)
+        elif metric == 'mem':
+            plt.ylim(0,1.1)
+            plt.ylabel('memory util.',fontsize=15)
+            plt.xlabel('f\nf',fontsize=18,color='w')
+        elif metric == 'sr':
+            plt.ylabel('tier-1 util.',fontsize=15)
+            plt.ylim(0,1)
+        elif metric == 'ra':
+            plt.ylim(0,1.1)
+            plt.ylabel('tier-2 util.',fontsize=15)
+            plt.xlabel('low-tier channels-per-link\n(oversubscription)',fontsize=18)
+        elif metric == 'ac':
+            plt.ylim(0,1.1)
+            plt.ylabel('tier-3 util.',fontsize=15)
+        elif metric == 'ratio':
+            plt.ylim(0,3.1)
+            plt.ylabel('spread',fontsize=15)
+            plt.xlabel('low-tier channels-per-link\n(oversubscription)',fontsize=18)
+            
+#         plt.title('topology vs {}'.format(metric))
         for packer in list(packer_stats.keys()):
             if not agent_normalised:
                 values = np.array(packer_stats[packer][metric])
@@ -417,9 +452,228 @@ def get_metric_line_plots(topologies,packer_stats,oversub,oversub_selector=None,
                 values = (values/agent_values)[indices]
 
             plt.plot(reshaped_topology_names,values,'o-',label=packer)
-        
-        plt.legend(ncol=5)
+            plt.xticks(fontsize=12)
+#         if metric == 'mem':
+#             plt.legend(ncol=5,loc='lower center')
+        plt.savefig('./figs/{}_line.png'.format(metric),bbox_inches='tight')
 
+
+        
+# def get_success_distribution(path,topologies,oversub,oversub_selector=None,channels_selector=None):
+    
+#     reshaped_topology_names = []
+#     indices = []
+#     for i in range(len(topologies)):
+#         tp = topologies[i]
+#         value = [float(x) for x in tp.split('_')]
+#         if oversub_selector is not None and oversub[i] != oversub_selector:
+#             continue
+#         elif channels_selector is not None and value[0] != channels_selector:
+#             continue
+#         else:
+#             indices.append(i)
+            
+# #     plt.figure()
+#     for packer in ['agent','tetris','nalb','nulb','random']:
+#         successes = []
+#         failures = []
+#         for index in indices:
+#             new_path = '{}/{}/{}'.format(path,packer,topologies[index])
+#             successes += _success_nodes(new_path,n=5)
+#             failures += _failure_nodes(new_path,n=5)
+        
+#         fig = plt.figure(figsize=(18,5))
+#         ax = fig.add_subplot(121)
+#         plt.subplots_adjust(wspace=None, hspace=None)
+#         pos = ax.get_position()
+# #         ax.set_position([pos.x0-3, pos.y0-3, pos.width, pos.height])
+
+#         plt.ylim(0,500)
+
+#         ###
+#         plt.title(packer,fontsize=40)
+#         sns.distplot(successes, 
+#             hist = True, 
+#             kde = False, 
+#             rug=False,
+# #             bins=np.arange(0,1.05,0.05),
+#             kde_kws = {'linewidth': 3},
+#             hist_kws={'histtype':'stepfilled','linewidth':4,'alpha':1.0,'color':'g'},#'edgecolor':'k','linewidth':4,'alpha':0.1},
+#             label='successes')
+        
+# #         plt.title('failures')
+#         sns.distplot(failures, 
+#             hist = True, 
+#             kde = False, 
+#             rug=False,
+# #             bins=np.arange(0,1.05,0.05),
+#             kde_kws = {'linewidth': 3},
+#             hist_kws={'histtype':'stepfilled','linewidth':4,'alpha':1.0,'color':'r'},#'edgecolor':'k','linewidth':4,'alpha':0.1},
+#             label='failures')
+
+# #         plt.legend(ncol=2,fontsize=17)
+#         plt.xticks([0,250],fontsize=22)
+#         plt.yticks([0,500],fontsize=22)
+        
+#         ###    
+#         in_ax = inset_axes(ax, 
+#                             width="50%", # width = 30% of parent_bbox
+#                             height=1.0, # height : 1 inch
+#                             loc=1)
+#         sns.distplot(successes, 
+#             hist = True, 
+#             kde = False, 
+#             rug=False,
+# #             bins=np.arange(0,1.05,0.05),
+#             kde_kws = {'linewidth': 3},
+#             hist_kws={'histtype':'stepfilled','linewidth':4,'alpha':1.0,'color':'g'},#'edgecolor':'k','linewidth':4,'alpha':0.1},
+#             label='successes')
+        
+# #         plt.title('failures')
+#         sns.distplot(failures, 
+#             hist = True, 
+#             kde = False, 
+#             rug=False,
+# #             bins=np.arange(0,1.05,0.05),
+#             kde_kws = {'linewidth': 3},
+#             hist_kws={'histtype':'stepfilled','linewidth':4,'alpha':1.0,'color':'r'},#'edgecolor':'k','linewidth':4,'alpha':0.1},
+#             label='failures')
+#         plt.xticks([200,240],fontsize=15)
+#         plt.yticks([0,300],fontsize=15)
+#         plt.title('upper 25% of request sizes',y=0.75,fontsize=15)
+#         plt.xlim(192,256)
+#         plt.ylim(0,300)
+#         plt.tight_layout()
+#         ###
+#         plt.tight_layout()
+#         plt.savefig('./figs/success_failure_{}.png'.format(packer),set_bbox_inches='tight')
+
+def get_ratio_distributions(oversub,topologies,packer_stats):
+    
+    all_oversubs = np.array(list(set(oversub)))
+#     all_oversubs = [all_oversubs[0],all_oversubs[-1]]
+    values = {'agent':{0.0625:[],0.125:[],0.25:[],1.0:[]},'tetris':{0.0625:[],0.125:[],0.25:[],1.0:[]},'nalb':{0.0625:[],0.125:[],0.25:[],1.0:[]},'nulb':{0.0625:[],0.125:[],0.25:[],1.0:[]},'random':{0.0625:[],0.125:[],0.25:[],1.0:[]}}
+    for i in range(len(all_oversubs)):
+        indices = np.argwhere(oversub==all_oversubs[i])
+        tops = np.array(topologies)[indices]
+        
+        for packer in list(packer_stats.keys()):
+            for j in range(len(tops)):
+
+                topology = tops[j][0]
+                values[packer][all_oversubs[i]] += _ratio_full('/home/uceezs0/Code/nara_data/uniform/baselines/{}/{}'.format(packer,topology),n=5)
+    plt.figure()
+    for packer in list(packer_stats.keys()):
+        oversub_0,bins = np.histogram(values[packer][0.0625],bins=[0,1,2,4])
+        oversub_1,bins = np.histogram(values[packer][0.125],bins=[0,1,2,4])
+        oversub_2,bins = np.histogram(values[packer][0.25],bins=[0,1,2,4])
+        oversub_3,bins = np.histogram(values[packer][1.0],bins=[0,1,2,4])
+        print(packer)
+#         print(oversub_0)
+#         print(oversub_1)
+#         print(oversub_2)
+#         print(oversub_3)
+        print(np.std([oversub_0[0],oversub_1[0],oversub_2[0],oversub_3[0]])/np.mean([oversub_0[0],oversub_1[0],oversub_2[0],oversub_3[0]]))
+        print(np.std([oversub_0[1],oversub_1[1],oversub_2[1],oversub_3[1]])/np.mean([oversub_0[1],oversub_1[1],oversub_2[1],oversub_3[1]]))
+        print(np.std([oversub_0[2],oversub_1[2],oversub_2[2],oversub_3[2]])/np.mean([oversub_0[2],oversub_1[2],oversub_2[2],oversub_3[2]]))
+        print('\n')
+#         sns.distplot(high_oversub/low_oversub, bins=bins,
+#                     hist = True,
+#                     kde = False, 
+#                     rug=False,
+#                     kde_kws = {'linewidth': 3})
+                
+                    
+#         plt.xlim(0,4)
+#         plt.title('oversubscription: {}'.format(oversub[i]),fontsize=25)
+#         plt.xticks([0.0,1.0,2.0,3.0,4.0],fontsize=25)
+#         plt.yticks([0.0,1.0,2.0,3.0,4.0],fontsize=25)
+#         if oversub[i] == 0.0625:
+#             plt.xlabel("'distribution' value",fontsize=25)
+#             plt.ylabel('probability density',fontsize=25)
+#         else:
+#             plt.xlabel("'distribution' value",fontsize=25,color='w')
+#             plt.ylabel('probability density',fontsize=25,color='w')
+#         plt.tight_layout()
+#         plt.savefig('./figs/distribution_{}.png'.format(topology))
+    
+# def get_ratio_distributions(oversub,topologies,packer_stats):
+    
+#     all_oversubs = np.array(list(set(oversub)))
+    
+#     for i in range(len(topologies)):
+#         topology = topologies[i]
+#         plt.figure()
+# #         plt.title('Topology: {}'.format(topology))
+#         for packer in list(packer_stats.keys()):
+            
+#             values = _ratio_full('/home/uceezs0/Code/nara_data/uniform/baselines/{}/{}'.format(packer,topology),n=5)
+            
+#             sns.distplot(values, 
+#             hist = False,
+#             kde = True, 
+#             rug=False,
+# #             bins=np.arange(0,1.05,0.05),
+#             kde_kws = {'linewidth': 3})
+#         plt.xlim(0,4)
+#         plt.title('oversubscription: {}'.format(oversub[i]),fontsize=25)
+#         plt.xticks([0.0,1.0,2.0,3.0,4.0],fontsize=25)
+#         plt.yticks([0.0,1.0,2.0,3.0,4.0],fontsize=25)
+#         if oversub[i] == 0.0625:
+#             plt.xlabel("'distribution' value",fontsize=25)
+#             plt.ylabel('probability density',fontsize=25)
+#         else:
+#             plt.xlabel("'distribution' value",fontsize=25,color='w')
+#             plt.ylabel('probability density',fontsize=25,color='w')
+# #         plt.legend()
+#         plt.tight_layout()
+#         plt.savefig('./figs/distribution_{}.png'.format(topology))
+        
+def get_ratio_probabilities(oversub,topologies,packer_stats):
+    
+    packs = {'agent':0,'tetris':0,'nalb':0,'nulb':0,'random':0}
+    probs = {0.0625:packs.copy(),0.125:packs.copy(),0.25:packs.copy(),1.0:packs.copy()}
+    oversub = np.array(list(oversub))
+    all_oversubs = np.array(list(set(oversub)))
+    for ovs in all_oversubs:
+        plt.figure()
+        plt.title('oversubscription: {}'.format(ovs),fontsize=25)
+        
+        plt.xlim(0,4)
+        plt.xticks([0.0,1.0,2.0,3.0,4.0],fontsize=25)
+        plt.yticks([0.0,1.0,2.0,3.0,4.0],fontsize=25)
+        if ovs == 0.0625:
+            plt.xlabel("'spread' value",fontsize=25)
+            plt.ylabel('probability density',fontsize=25)
+        else:
+            plt.xlabel("'spread' value",fontsize=25,color='w')
+            plt.ylabel('probability density',fontsize=25,color='w')
+            
+            
+        print('\n')
+        print(ovs)
+        indices = np.argwhere(oversub==float(ovs))
+        tops = np.array(topologies)[indices]
+        for packer in packer_stats.keys():
+            print(packer)
+            values = []
+            for topology in tops:
+                topology = topology[0]
+                values +=_ratio_full('/home/uceezs0/Code/nara_data/uniform/baselines/{}/{}'.format(packer,topology),n=5)
+            bins,limits = np.histogram(values,bins=[0.0,1.0,2.0,4.0])
+            bins = bins/len(values)
+            print(bins)
+            
+            sns.distplot(values, 
+            hist = False,
+            kde = True, 
+            rug=False,
+            bins=np.arange(0,1.05,0.05),
+            kde_kws = {'linewidth': 3})
+        plt.tight_layout()
+        plt.savefig('./figs/distribution_{}.png'.format(ovs))
+            
+            
 def get_success_distribution(path,topologies,oversub,oversub_selector=None,channels_selector=None):
     
     reshaped_topology_names = []
@@ -434,8 +688,9 @@ def get_success_distribution(path,topologies,oversub,oversub_selector=None,chann
         else:
             indices.append(i)
             
-#     plt.figure()
-    for packer in ['agent','tetris','nalb','nulb','random']:
+    plt.figure(figsize=(12,3))
+    for i in range(len(['agent','tetris','nalb','nulb','random'])):
+        packer = ['agent','tetris','nalb','nulb','random'][i]
         successes = []
         failures = []
         for index in indices:
@@ -443,46 +698,18 @@ def get_success_distribution(path,topologies,oversub,oversub_selector=None,chann
             successes += _success_nodes(new_path,n=5)
             failures += _failure_nodes(new_path,n=5)
         
-        plt.figure()
-        plt.ylim(0,500)
-        plt.title(packer)
-        sns.distplot(failures, 
-            hist = True, 
-            kde = False, 
-            rug=False,
-#             bins=np.arange(0,1.05,0.05),
-            kde_kws = {'linewidth': 3},
-            label='failures',
-            color='r')
+        ticks = bins = np.arange(-32,264,32)
+        bins = ticks-25+(i*5)
+        successes,limits = np.histogram(successes,bins=ticks)
+        failures,limits = np.histogram(failures,bins=ticks)
+        total = successes - failures
+        print(total)
+        plt.bar(bins[1:],total,label=packer,width=5)
+        plt.xticks(ticks,fontsize=18)
+        plt.yticks(fontsize=18)
+        plt.xlim(ticks[1],ticks[-1])
 
-        sns.distplot(successes, 
-            hist = True, 
-            kde = False, 
-            rug=False,
-#             bins=np.arange(0,1.05,0.05),
-            kde_kws = {'linewidth': 3},
-            label='successes',
-            color='g')
-        
-        plt.legend()
-       
-    
-def get_ratio_distributions(oversub,topologies,packer_stats):
-    
-    all_oversubs = np.array(list(set(oversub)))
-
-    for topology in topologies:
-        plt.figure()
-        plt.title('Topology: {}'.format(topology))
-        for packer in list(packer_stats.keys()):
-            
-            values = _ratio_full('/home/uceezs0/Code/nara_data/uniform/baselines/{}/{}'.format(packer,topology),n=5)
-            
-            sns.distplot(values, 
-            hist = False, 
-            kde = True, 
-            rug=True,
-#             bins=np.arange(0,1.05,0.05),
-            kde_kws = {'linewidth': 3},
-            label=packer)
-        plt.legend()
+    plt.xlabel('Request size (CPU + Memory)',fontsize=18)
+    plt.ylabel('|accepted| - |rejected|',fontsize=18)
+    plt.tight_layout()
+    plt.savefig('./figs/success_failure.png',set_bbox_inches='tight')

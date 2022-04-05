@@ -16,7 +16,7 @@ import numpy as np
 from rollout import rollout, PackingAgent
 from plots import acceptance_ratio, util, failure, acceptance_load, ratio
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3,4"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import numpy as np
 import tensorflow as tf
@@ -27,13 +27,13 @@ import argparse
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--topology', nargs='?', default='alpha')
+    parser.add_argument('--topology', nargs='?', default='delta')
     parser.add_argument('--test_baselines', nargs='?', default='yes')
     parser.add_argument('--agent', nargs='?', default='uniform')
     parser.add_argument('--dataset', nargs='?', default='uniform')
-    parser.add_argument('--episode_length', nargs='?', default='128',type=int)
+    parser.add_argument('--episode_length', nargs='?', default='512',type=int)
     parser.add_argument('--iterations', nargs='?', default='5',type=int)
-    parser.add_argument('--save_dir', nargs='?', default='../../nara_data/oversub_model_small/baselines/')
+    parser.add_argument('--save_dir', nargs='?', default='../../nara_data/large_graph/baselines/')
     args = parser.parse_args()
 
     #kwargs
@@ -49,29 +49,9 @@ if __name__ == '__main__':
     ray.shutdown()
     ray.init(temp_dir='/tmp/uceezs0_ray_tmp_0',ignore_reinit_error=True)
 
-#     checkpoint_path = [
-#         '8.0_64.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_14-13-29ij6kbta8',
-#         '8.0_32.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-26_10-20-1164x4sxuq',
-#         '8.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_21-52-386eviwvm0',
-#         '8.0_16.0_4.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_16-01-07bprkcmlo',
-#         '16.0_128.0_128.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_01-42-49ikkndlsx',
-#         '16.0_64.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_05-19-33_344rm6i',
-#         '16.0_64.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_11-19-22uwx0v9fd',
-#         '16.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_20-15-5076a8l_qu',
-#         '32.0_256.0_256.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_12-53-26qcefb8dx',
-#         '32.0_128.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-25_17-01-35fqd0mv7g',
-#         '32.0_128.0_32.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_10-10-56p23xt118',
-#         '32.0_64.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-28_00-17-300m1s52_f'
-#     ][::-1]
+    checkpoint_path = [
+        '8.0_64.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_14-13-29ij6kbta8']
 
-    checkpoint_path = ([
-#         '8.0_64.0_64.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_14-13-29ij6kbta8',
-#         '8.0_32.0_16.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-26_10-20-1164x4sxuq',
-#         '8.0_32.0_8.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_21-52-386eviwvm0',
-        '8.0_16.0_4.0/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-27_16-01-07bprkcmlo'
-    ]*4)[::-1]
-
-    
     check_dir_0 = '/home/uceezs0/Code/nara_data/uniform/agent_train/{}'.format(checkpoint_path[0])
     check_dir_1 = 'checkpoint_100/checkpoint-100'
     with open('{}/params.json'.format(check_dir_0),'r') as f:
@@ -100,7 +80,7 @@ if __name__ == '__main__':
         random = PackingAgent('random')
 
     n = 1
-    low_tier_channels = [32.0,16.0,8.0]
+    low_tier_channels = [8.0,16.0,32.0]
     oversubscription_ratio_multipliers = [(n*8,n*8),(n*4,n*2),(n*4,n*1),(n*2,n*0.5)]
 
     all_combos = []
@@ -113,16 +93,16 @@ if __name__ == '__main__':
     for i in range(len(all_combos)):
 
         combo = all_combos[i]
-
+        print(combo)
         sr_channel = combo[0]
         ra_channel = combo[1]
         ac_channel = combo[2]
 
         agent = ppo.PPOTrainer(config=config)
-        agent.restore('/home/uceezs0/Code/nara_data/uniform/agent_train/{}/checkpoint_100/checkpoint-100'.format(checkpoint_path[0]))
+        agent.restore('/home/uceezs0/Code/nara_data/uniform/agent_train/{}/checkpoint_100/checkpoint-100'.format(checkpoint_path[i]))
 
-#         print(checkpoint_path[i])
-#         print(combo)
+        print(checkpoint_path[i])
+        print(combo)
 
         with open('../topologies/{}/components/SRLink.txt'.format(args.topology),'r+') as f:
             tmp_config = json.load(f)

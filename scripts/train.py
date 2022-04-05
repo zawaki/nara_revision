@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--dataset', nargs='?', type=str, default='uniform')
     parser.add_argument('--episode_length', nargs='?', default='32',type=int)
-    parser.add_argument('--save_dir', nargs='?', type=str, default='/home/uceezs0/Code/nara_data/uniform/agent_train')
+    parser.add_argument('--save_dir', nargs='?', type=str, default='/home/uceezs0/Code/nara_data/uniform/agent_train_deeper_mp')
 
     parser.add_argument("--number_of_trains", type=int, default=1)
     args = parser.parse_args()
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         request_type = 'AlibabaRequest'
 
     low_tier_channels = [8.0,16.0,32.0]
-    oversubscription_ratio_multipliers = [(2,0.5)]#(8,8),(4,2),(4,1),]
+    oversubscription_ratio_multipliers = [(8,8),(4,2),(4,1),(2,0.5)]
 
     all_combos = []
 
@@ -70,14 +70,14 @@ if __name__ == "__main__":
     # all_combos = [[32.0,128.0,32.0]]
     # all_combos = [[16.0,64.0,16.0]]
 
-    for i in range(len(all_combos)):
+    for i in range(1):#len(all_combos)):
 
         combo = all_combos[i]
         print('combination: {}'.format(i))
         combo_str = '{}_{}_{}'.format(combo[0],combo[1],combo[2])
 
-        # restore = '{}/{}/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-24_16-14-50by0p5045/checkpoint_34/checkpoint-34'.format(args.save_dir,combo_str)
-        restore = None
+        restore = '{}/{}/PPO/PPO_pa_network_0_lr=0.005,sgd_minibatch_size=256,train_batch_size=2048_2021-09-30_11-47-43zwc8wqhe/checkpoint_83/checkpoint-83'.format(args.save_dir,combo_str)
+        # restore = None
 
         sr_channel = combo[0]
         ra_channel = combo[1]
@@ -148,7 +148,7 @@ if __name__ == "__main__":
                         'use_gnn':True,
                         'agg_type':'MeanPool2',
                         'agg_dim':16,
-                        'num_mp_stages':3,
+                        'num_mp_stages':4,
                         'obs_emb_dim':8,
                         'num_features':NUM_FEATURES,
                         'embedding_save_dir':None,

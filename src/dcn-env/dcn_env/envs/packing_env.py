@@ -64,6 +64,8 @@ class PackingEnv(gym.Env):
         self.reset()
         self.action_space = spaces.Discrete(self.num_actions)
         self.observation_space = spaces.Box(low=-10000,high=10000,shape=(len(self.features['node'])+1,))
+        #no holding-time
+        # self.observation_space = spaces.Box(low=-10000,high=10000,shape=(len(self.features['node']),))
         
         self.path_links = set()
 
@@ -103,8 +105,17 @@ class PackingEnv(gym.Env):
 
     def connectivity_check(self,component_id, k=3):
 
+        #EDIT: check if the current node will be used for cpu (if not, then it's only memory) --> bool_1
+        bool_1 = False
+        bool_2 = False
+        #EDIT: if new component won't allocate 'node' to request, bool_1 = 0
+        if (self.manager.allocated_requests[self.current_request].requirements['node'] == self.manager.allocated_requests[self.current_request].allocated['node']) or self.manager.network.components[component_id].available['node'] == 0.0:
+            bool_1 = True
+
         # components = list(self.manager.allocated_requests[self.current_request].allocations.keys())
         components = [comp for comp in list(self.manager.allocated_requests[self.current_request].allocations.keys()) if self.manager.network.components[comp].sub_type == 'Resource']
+    
+
         # print(components)
         all_links = {}
         failed = False
@@ -117,6 +128,15 @@ class PackingEnv(gym.Env):
             weight = 'weight'
 
         for comp in components:
+
+            #EDIT: if current component doesn't allocate 'node' to request, bool_2 = 0
+            if self.manager.network.components[comp].allocations[self.current_request]['node'] == 0.0:
+                bool_2 = True
+
+            #EDIT: if (bool_1 and bool_2) then ignore this connection (continue)
+            if bool_1 and bool_2:
+                continue
+
             # print(nx.shortest_simple_paths(graph,component_id,comp,weight=weight),k)
             paths = list(islice(nx.shortest_simple_paths(graph,component_id,comp,weight=weight), k))
 
@@ -153,7 +173,7 @@ class PackingEnv(gym.Env):
                 # print('no paths')
                 return failed
             
-        self.links_to_allocate = all_links
+        # self.links_to_allocate = all_links
 
         return failed
 
@@ -398,7 +418,7 @@ class PackingEnv(gym.Env):
             # self.initial_resource_quantity -= np.array(self.manager.allocated_requests[self.current_request].requirements['node'])
             self.initial_resource_quantity -= req_vec
 
-            self.allocate_network()
+            # self.allocate_network()
 
             #return list of allocated components so can calculate node/link ratio in plots
             allocated_comps = list(self.manager.allocated_requests[self.current_request].allocations.keys())
@@ -444,6 +464,8 @@ class PackingEnv(gym.Env):
         cur_req_hold_time = self.manager.allocated_requests[self.current_request].requirements['holding_time_feat']
 
         return np.append(packing_eff,cur_req_hold_time)
+        #no holding-time
+        # return packing_eff
 
     def _network_util(self):
 
@@ -741,6 +763,8 @@ class ParametricActionsModel(TFModelV2):
 
         #Define and register the observation embedding model
         final_obs_shape = (len(self.config['custom_model_config']['features']['node'])+1,)#(true_obs_shape[0],)
+        #no holding-time
+        # final_obs_shape = (len(self.config['custom_model_config']['features']['node']),)
 
         self.action_embed_model = FullyConnectedNetwork(
             Box(-1, 1, shape=final_obs_shape), 
@@ -777,6 +801,8 @@ class ParametricActionsModel(TFModelV2):
             if self.registered == False:
                 #+1 is added to account for the binary usage indicator
                 tmp_feats = tf.ones([self.dgl_graph.number_of_nodes(),len(self.config['custom_model_config']['features']['node'])+1])
+                #no holding-time
+                # tmp_feats = tf.ones([self.dgl_graph.number_of_nodes(),len(self.config['custom_model_config']['features']['node'])])
                 self.dgl_graph.ndata['features'] = tmp_feats
                 self.dgl_graph.ndata['h'] = self.dgl_graph.ndata['features']
                 
